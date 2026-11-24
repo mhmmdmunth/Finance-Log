@@ -200,12 +200,17 @@ function render(k,still){const f=$('.fab');f.style.display=isV()?'none':'';f.tex
  if(!still)v.querySelectorAll('[data-n]').forEach(cu);
  if(V==='ana'&&AV==='g')draw(still);D.forEach(r=>{delete r._new});IV.forEach(r=>{delete r._new});WL.forEach(r=>{delete r._new});if(!k)window.scrollTo(0,0)}
 
+// ===== saldo kas & rata-rata harian =====
+// Saldo kas = pemasukan - pengeluaran - setoran investasi/wishlist + penarikan. Rata-rata harian = total / hari yang sudah berjalan di rentang terpilih.
+const alloc=R=>IV.reduce((q,r)=>(R===null||inR(r,R))&&(r.tp==='Setor'||r.tp==='Tarik')?q+(r.tp==='Setor'?r.a:-r.a):q,0);
+const cashAll=()=>sum(D,'in')-sum(D,'out')-alloc(null);
+function avgD(R,total){const td=ymd(new Date());if(td<R[0])return{n:0,avg:0};const end=R[1]<td?R[1]:td,n=dd(R[0],end)+1;return{n,avg:total/n}}
 // ===== beranda =====
 function home(){const R=rng(),Pv=prev(R),cur=D.filter(r=>inR(r,R)),old=D.filter(r=>inR(r,Pv)),i=sum(cur,'in'),o=sum(cur,'out'),oo=sum(old,'out'),io=sum(old,'in'),
- td=ymd(new Date()),end=R[1]<td?R[1]:td,days=Math.max(1,dd(R[0],end)+1),tc=topN(grp(cur,'out'),1)[0];
+ td=ymd(new Date()),end=R[1]<td?R[1]:td,ad=avgD(R,o),pa=avgD(Pv,oo),al=alloc(R),tc=topN(grp(cur,'out'),1)[0];
  const cmp=(n,p,l,up)=>p?`<p>${n>=p?'▲':'▼'} ${l} <b class="${(n>=p)===up?'in':'out'}">${Math.abs(Math.round((n-p)/p*100))}% ${n>=p?'naik':'turun'}</b> dibanding periode sebelumnya</p>`:`<p class="mut">${l}: belum ada data periode sebelumnya</p>`;
- return chips()+`<div class="card hero"><small>💎 Saldo bersih</small><div class="big" data-n="${i-o}">${rp(i-o)}</div><div class="two"><div><small>📥 Pemasukan</small><b data-n="${i}">${rp(i)}</b></div><div><small>📤 Pengeluaran</small><b data-n="${o}">${rp(o)}</b></div></div></div>
- <div class="card ins"><h3>✨ Insight</h3>${cur.length?`<p>${tc?ico(tc[0],'out'):''} Terbesar: <b>${tc?esc(tc[0]):'-'}</b>${tc?' ('+rp(tc[1])+')':''}</p><p>📆 Rata-rata pengeluaran harian: <b>${rp(o/days)}</b></p>${cmp(o,oo,'Pengeluaran',false)}${cmp(i,io,'Pemasukan',true)}<button class="chip" style="margin-top:6px" onclick="AV='s';saveUI();go('ana')">Lihat analisis lengkap →</button>`:emptyBox('🌱','Belum ada transaksi di periode ini.')}</div>
+ return chips()+`<div class="card hero"><small>💎 Saldo bersih (kas)</small><div class="big" data-n="${i-o-al}">${rp(i-o-al)}</div><div class="two"><div><small>📥 Pemasukan</small><b data-n="${i}">${rp(i)}</b></div><div><small>📤 Pengeluaran</small><b data-n="${o}">${rp(o)}</b></div><div style="grid-column:1/-1"><small>🏦 Ke investasi & wishlist (bersih)</small><b>${al>0?'-':al<0?'+':''}${rp(Math.abs(al))}</b></div></div><small style="display:block;margin-top:10px">Saldo kas keseluruhan: <b>${rp(cashAll())}</b></small></div>
+ <div class="card ins"><h3>✨ Insight</h3>${cur.length?`<p>${tc?ico(tc[0],'out'):''} Terbesar: <b>${tc?esc(tc[0]):'-'}</b>${tc?' ('+rp(tc[1])+')':''}</p><p>📆 Rata-rata pengeluaran harian: <b>${ad.n?rp(ad.avg):'-'}</b> <small class="mut">(${P==='day'?'hari ini':ad.n+' hari berjalan'}${pa.n&&oo?' · periode lalu '+rp(pa.avg)+'/hari':''})</small></p>${cmp(o,oo,'Pengeluaran',false)}${cmp(i,io,'Pemasukan',true)}<button class="chip" style="margin-top:6px" onclick="AV='s';saveUI();go('ana')">Lihat analisis lengkap →</button>`:emptyBox('🌱','Belum ada transaksi di periode ini.')}</div>
  ${bcard()}
  ${wmini()}
  <div class="card"><h3>🕒 Transaksi terbaru</h3>${D.length?sorted(D).slice(0,5).map(r=>item(r)).join(''):emptyBox('📝','Belum ada transaksi.'+(isV()?'':'<br>Ketuk “+ Tambah Transaksi” untuk mulai.'))}</div>`}
@@ -213,7 +218,7 @@ function go(v){document.querySelector(`nav [data-v=${v}]`).click()}
 
 // ===== analisis =====
 function analisis(){const R=rng(),Pv=prev(R),cur=D.filter(r=>inR(r,R)),old=D.filter(r=>inR(r,Pv)),i=sum(cur,'in'),o=sum(cur,'out'),oo=sum(old,'out'),
- td=ymd(new Date()),end=R[1]<td?R[1]:td,days=Math.max(1,dd(R[0],end)+1),tot=dd(R[0],R[1])+1,by=grp(cur,'out'),bo=grp(old,'out'),tc=topN(by,3),sr=i?(i-o)/i:null,T=[],ex=cur.filter(r=>r.t==='out');
+ td=ymd(new Date()),end=R[1]<td?R[1]:td,ad=avgD(R,o),days=Math.max(1,ad.n),tot=dd(R[0],R[1])+1,al=alloc(R),by=grp(cur,'out'),bo=grp(old,'out'),tc=topN(by,3),sr=i?(i-o)/i:null,T=[],ex=cur.filter(r=>r.t==='out');
  const add=(l,ic,h,t)=>T.push({l,ic,h,t});
  if(!cur.length)return{empty:true};
  if(i===0&&o>0)add('w','⚠️','Belum ada pemasukan tercatat','Ada pengeluaran '+rp(o)+' tetapi belum ada pemasukan di periode ini. Catat pemasukan agar analisis tabungan akurat.');
@@ -230,18 +235,21 @@ function analisis(){const R=rng(),Pv=prev(R),cur=D.filter(r=>inR(r,R)),old=D.fil
  if(ex.length>=7){const w=[0,0,0,0,0,0,0];ex.forEach(r=>w[dt(r.d).getDay()]+=r.a);const mx=w.indexOf(Math.max(...w));add('i','📅','Hari paling boros: '+['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][mx],'Total '+rp(w[mx])+' pada hari itu. Rencanakan pengeluaran sebelum hari tersebut.')}
  if(ex.length){const bg=ex.reduce((a,b)=>b.a>a.a?b:a);add('i','💸','Pengeluaran terbesar',bg.k+' '+rp(bg.a)+' ('+fd8(bg.d)+(bg.n?', '+bg.n:'')+').');
   const sm=ex.filter(r=>r.a<=30000),ss=sm.reduce((s,r)=>s+r.a,0);if(sm.length>=8&&ss/o>=.15)add('w','☕','Pengeluaran kecil menumpuk',sm.length+' transaksi ≤ Rp 30.000 totalnya '+rp(ss)+' ('+pc(ss,o)+'%). Sering tidak terasa, tapi besar.')}
+ if(i>0&&al!==0)add(al>0?'i':'g','🏦','Alokasi ke investasi & wishlist: '+rp(Math.abs(al))+(al>0?' ('+pc(al,i)+'% pemasukan)':''),al>0?'Sisa kas periode ini '+rp(i-o-al)+' setelah menyetor ke investasi dan wishlist.':'Penarikan melebihi setoran, jadi saldo kas bertambah.');
+ const pa2=avgD(Pv,oo);if(oo>0&&pa2.n&&ad.n){const ch=Math.round((ad.avg-pa2.avg)/pa2.avg*100);if(Math.abs(ch)>=10)add(ch>0?'w':'g','📆','Rata-rata harian '+(ch>0?'naik ':'turun ')+Math.abs(ch)+'%','Sekarang '+rp(ad.avg)+'/hari (dari '+ad.n+' hari), sebelumnya '+rp(pa2.avg)+'/hari.')}
+ if(cashAll()<0)add('b','🚨','Saldo kas keseluruhan negatif','Saldo kas '+rp(cashAll())+'. Pengeluaran dan setoran melebihi pemasukan yang tercatat; periksa apakah ada pemasukan yang belum dicatat.');
  const bad=B.some(b=>spent(b.k)>b.a),s=i===0?['Belum cukup data','i']:(sr<0||bad)?['Perlu perhatian','b']:sr<.2?['Waspada','w']:['Sehat','g'];
- return{i,o,sr,days,pj:o/days*tot,n:cur.length,T,s}}
+ return{i,o,sr,days:ad.n,avg:ad.avg,al,pj:o/days*tot,n:cur.length,T,s}}
 const spent=k=>{const g=brng();return D.filter(r=>r.t==='out'&&r.d>=g[0]&&r.d<=g[1]&&(k==='Total'||r.k===k)).reduce((s,r)=>s+r.a,0)};
 const tips=T=>T.map(t=>`<div class="tip ${t.l}"><span class="ic">${t.ic}</span><div><b>${esc(t.h)}</b><p>${esc(t.t)}</p></div></div>`).join('');
 const AVB=()=>`<div class="seg" style="grid-template-columns:1fr 1fr"><button class="${AV==='g'?'on':''}" onclick="AV='g';saveUI();render(true)">📊 Grafik</button><button class="${AV==='s'?'on':''}" onclick="AV='s';saveUI();render(true)">💡 Analisis</button></div>`;
 const WD=['Sen','Sel','Rab','Kam','Jum','Sab','Min'];
 function ana(){return chips()+AVB()+(AV==='g'?graf():saran())}
 function saran(){const a=analisis();if(a.empty)return `<div class="card">${emptyBox('📊','Belum ada data di periode ini.')}</div>`;
- return `<div class="card"><div class="row" style="justify-content:space-between;align-items:center;margin:0"><h3 style="margin:0">🩺 Kondisi keuangan</h3><span class="bd ${a.s[1]}">${a.s[0]}</span></div><div class="two2"><div><small class="mut">Tingkat tabungan</small><b>${a.sr==null?'-':Math.round(a.sr*100)+'%'}</b></div><div><small class="mut">Rata-rata harian</small><b>${rp(a.o/a.days)}</b></div><div><small class="mut">Proyeksi pengeluaran</small><b>${rp(a.pj)}</b></div><div><small class="mut">Jumlah transaksi</small><b>${a.n}</b></div></div></div>
+ return `<div class="card"><div class="row" style="justify-content:space-between;align-items:center;margin:0"><h3 style="margin:0">🩺 Kondisi keuangan</h3><span class="bd ${a.s[1]}">${a.s[0]}</span></div><div class="two2"><div><small class="mut">Tingkat tabungan</small><b>${a.sr==null?'-':Math.round(a.sr*100)+'%'}</b></div><div><small class="mut">Rata-rata harian · ${a.days} hari</small><b>${a.days?rp(a.avg):'-'}</b></div><div><small class="mut">Proyeksi pengeluaran</small><b>${rp(a.pj)}</b></div><div><small class="mut">Jumlah transaksi</small><b>${a.n}</b></div></div></div>
  <h3 style="margin:14px 4px 8px">💡 Analisis & saran</h3>${tips(a.T)}`}
 function graf(){const R=rng(),cur=D.filter(r=>inR(r,R));if(!cur.length)return `<div class="card">${emptyBox('📊','Belum ada data di periode ini.')}</div>`;
- const i=sum(cur,'in'),o=sum(cur,'out'),by=topN(grp(cur,'out'),6),mx=by.length?by[0][1]:1,p=i?Math.min(o/i,1):(o?1:0),pct=i?Math.round(o/i*100):null;
+ const i=sum(cur,'in'),o=sum(cur,'out'),al=alloc(R),by=topN(grp(cur,'out'),6),mx=by.length?by[0][1]:1,p=i?Math.min(o/i,1):(o?1:0),pct=i?Math.round(o/i*100):null;
  const ring=`<svg viewBox="0 0 120 120" class="ring"><defs><linearGradient id="rg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd43b"/><stop offset="1" stop-color="#f5a300"/></linearGradient></defs><circle cx="60" cy="60" r="52" fill="none" stroke="#eef0fa" stroke-width="12"/><circle class="rg" cx="60" cy="60" r="52" fill="none" stroke="${o>i?'#e8416a':'url(#rg)'}" stroke-width="12" stroke-linecap="round" stroke-dasharray="${(p*326.7).toFixed(1)} 326.7" transform="rotate(-90 60 60)"/></svg>`;
  const rk=by.map(([k,v],j)=>`<div class="rb"><span class="ic">${ico(k,'out')}</span><div class="gr"><div class="r2"><b>${esc(k)}</b><span>${rp(v)} · ${pc(v,o)}%</span></div><div class="bar"><i style="width:${v/mx*100}%;background:${PAL[j%8]};animation-delay:${j*80}ms"></i></div></div></div>`).join('');
  const td=ymd(new Date()),span=dd(R[0],R[1])+1;let a=R[0],b=R[1];if(span>42){b=R[1]<td?R[1]:td;const x=new Date(dt(b));x.setDate(x.getDate()-34);a=ymd(x)}
@@ -251,7 +259,7 @@ function graf(){const R=rng(),cur=D.filter(r=>inR(r,R));if(!cur.length)return `<
   hm+=`<i class="hc" title="${fd8(s)}: ${rp(v)}" style="background:${v?`rgba(245,163,0,${al.toFixed(2)})`:'#f1f3fb'};color:${al>.55?'#fff':'#475467'};animation-delay:${k*10}ms">${d.getDate()}</i>`}
  const w=[0,0,0,0,0,0,0];cur.forEach(r=>{if(r.t==='out')w[(dt(r.d).getDay()+6)%7]+=r.a});const wm=Math.max(...w,1);
  const wk=w.map((v,j)=>`<div><span class="wb"><i style="height:${Math.max(v/wm*100,v?6:3)}%;animation-delay:${j*60}ms;${v===wm&&v?'':'opacity:.5'}"></i></span><small>${WD[j]}</small></div>`).join('');
- return `<div class="card"><div class="rw"><div class="rwp">${ring}<div class="rc"><b>${pct==null?'—':pct+'%'}</b><small>pemasukan terpakai</small></div></div><div class="gr"><div class="lg"><i style="background:#0fa97a"></i>📥 Pemasukan<b>${rp(i)}</b></div><div class="lg"><i style="background:#e8416a"></i>📤 Pengeluaran<b>${rp(o)}</b></div><div class="lg"><i style="background:${i-o>=0?'#0fa97a':'#e8416a'}"></i>💰 Sisa<b>${rp(i-o)}</b></div></div></div></div>
+ return `<div class="card"><div class="rw"><div class="rwp">${ring}<div class="rc"><b>${pct==null?'—':pct+'%'}</b><small>pemasukan terpakai</small></div></div><div class="gr"><div class="lg"><i style="background:#0fa97a"></i>📥 Pemasukan<b>${rp(i)}</b></div><div class="lg"><i style="background:#e8416a"></i>📤 Pengeluaran<b>${rp(o)}</b></div><div class="lg"><i style="background:#f5b301"></i>🏦 Investasi & wishlist<b>${rp(al)}</b></div><div class="lg"><i style="background:${i-o-al>=0?'#0fa97a':'#e8416a'}"></i>💰 Sisa kas<b>${rp(i-o-al)}</b></div></div></div></div>
  <div class="card"><h3>🏆 Kategori terbesar</h3>${rk||emptyBox('🌱','Belum ada pengeluaran.')}</div>
  <div class="card"><h3>🍩 Komposisi pengeluaran</h3><canvas id="c1"></canvas></div>
  <div class="card"><h3>📈 Tren pemasukan & pengeluaran</h3><canvas id="c2"></canvas></div>
@@ -359,7 +367,7 @@ function invv(){if(!IV.length)return `<div class="card">${emptyBox('💎','Belum
 // ===== form =====
 const segH=()=>ft==='inv'?['Setor','Tarik','Nilai'].map(x=>`<button class="${tp===x?'on':''}" onclick="tp='${x}';refresh()">${x==='Nilai'?'Nilai terkini':x}</button>`).join(''):`<button class="o ${ft==='out'?'on':''}" onclick="setT('out')">📤 Pengeluaran</button><button class="i ${ft==='in'?'on':''}" onclick="setT('in')">📥 Pemasukan</button>`;
 const fcats=()=>{const l=ctl(ft).map(c=>c.n);if(E&&E.t===ft&&!l.includes(E.k))l.push(E.k);return l};
-function refresh(){$('#seg').innerHTML=segH();$('#fh').textContent=ft==='inv'&&tp==='Nilai'?'Isi total nilai instrumen ini saat ini (bukan setoran baru).':'';
+function refresh(){$('#seg').innerHTML=segH();$('#fh').textContent=ft==='inv'?(tp==='Nilai'?'Isi total nilai instrumen ini saat ini (bukan setoran baru). Tidak memengaruhi saldo kas.':tp==='Setor'?'Setoran ini mengurangi saldo kas (uang dipindah ke investasi).':'Penarikan ini menambah saldo kas.'):'';
  $('#cats').innerHTML=fcats().map(k=>`<button class="chip ${k===fk?'on':''}" data-k="${esc(k)}" onclick="fk=this.dataset.k;refresh()">${ico(k,ft)} ${esc(k)}</button>`).join('')||'<span class="mut">Belum ada kategori. Tambahkan lewat Akun → Kelola Kategori.</span>'}
 function setT(t){ft=t;fk='';refresh()}
 function openForm(t,id){if(isV())return toast('Peran Viewer hanya bisa melihat data',false);
@@ -375,7 +383,7 @@ async function save(){const a=parseInt($('#fa').value.replace(/\D/g,''))||0,d=$(
  if(a<=0)return toast('Nominal harus lebih dari 0',false);if(!fk)return toast(ft==='inv'?'Pilih instrumen dulu':'Pilih kategori dulu',false);if(!d)return toast('Tanggal wajib diisi',false);
  const x={t:ft,d,k:fk,a,n:$('#fn').value.trim()};if(ft==='inv')x.tp=tp;const e=E;
  await wr(()=>{if(e){Object.assign(e,x);e._new=1}else(ft==='inv'?IV:D).push({...x,id:0,_new:1})},e?'upd':'add',e?{...x,id:e.id,ot:e.t,sig:e.d+'|'+e.a}:x,'Tersimpan ✓');
- const w=x.t==='out'?over(x.k):'';if(w)toast(w,false)}
+ const w=x.t==='out'?over(x.k):'';if(w)toast(w,false);else if(x.t==='inv'&&x.tp==='Setor'&&cashAll()<0)toast('Saldo kas menjadi negatif ('+rp(cashAll())+'). Periksa pencatatan pemasukanmu.',false)}
 function askDel(){$('#sh').innerHTML=`<h3 style="font-size:18px">Hapus catatan ini?</h3><p class="mut">${esc(E.k)} · ${rp(E.a)} · ${fd8(E.d)}<br>Baris ini akan dihapus dari spreadsheet dan tidak bisa dikembalikan dari aplikasi.</p><button class="btn d" onclick="doDel()">Ya, hapus</button><button class="btn g" onclick="closeS()">Batal</button>`}
 function doDel(){const e=E;wr(()=>{const L=e.t==='inv'?IV:D;L.splice(L.indexOf(e),1)},'del',{t:e.t,id:e.id,sig:e.d+'|'+e.a},'Dihapus ✓',[key(e)])}
 
@@ -427,11 +435,11 @@ function wAskDel(){$('#sh').innerHTML=`<h3 style="font-size:18px">Hapus wishlist
 function wDel(){const e=WE;wr(()=>{WL.splice(WL.indexOf(e),1)},'wdel',{id:e.id,sig:e.n+'|'+e.a},'Wishlist dihapus ✓',['w'+e.id])}
 function wFind(id){if(isV()){toast('Peran Viewer hanya bisa melihat data',false);return null}if(SYNC){toast('Sedang menyinkronkan, tunggu sebentar…',false);return null}return WL.find(w=>w.id===id)||null}
 function wSave(id){const w=wFind(id);if(!w)return;WK=w;
- $('#sh').innerHTML=`<h3 style="font-size:18px">${w.i||'🎯'} Tabung untuk ${esc(w.n)}</h3><p class="mut">Terkumpul ${rp(wSaved(w))} dari ${rp(w.a)}. Tercatat sebagai setoran di tab Investasi.</p><input id="wsa" class="amt" inputmode="numeric" placeholder="Rp 0" oninput="fmt(this)"><input id="wsd" type="date" value="${ymd(new Date())}" style="margin-bottom:10px"><input id="wsn" placeholder="Catatan (opsional)"><button class="btn" onclick="wSaveGo()">Simpan tabungan</button><button class="btn g" onclick="closeS()">Batal</button>`;$('#ov').classList.add('on');setTimeout(()=>$('#wsa').focus(),250)}
+ $('#sh').innerHTML=`<h3 style="font-size:18px">${w.i||'🎯'} Tabung untuk ${esc(w.n)}</h3><p class="mut">Terkumpul ${rp(wSaved(w))} dari ${rp(w.a)}. Tercatat sebagai setoran di tab Investasi dan mengurangi saldo kas.</p><input id="wsa" class="amt" inputmode="numeric" placeholder="Rp 0" oninput="fmt(this)"><input id="wsd" type="date" value="${ymd(new Date())}" style="margin-bottom:10px"><input id="wsn" placeholder="Catatan (opsional)"><button class="btn" onclick="wSaveGo()">Simpan tabungan</button><button class="btn g" onclick="closeS()">Batal</button>`;$('#ov').classList.add('on');setTimeout(()=>$('#wsa').focus(),250)}
 function wSaveGo(){const a=parseInt($('#wsa').value.replace(/\D/g,''))||0,d=$('#wsd').value,w=WK;if(a<=0)return toast('Nominal harus lebih dari 0',false);if(!d)return toast('Tanggal wajib diisi',false);
- const x={t:'inv',d,k:WP+w.n,a,n:$('#wsn').value.trim()||'Tabungan '+w.n,tp:'Setor'};wr(()=>IV.push({...x,id:0,_new:1}),'add',x,'Tabungan tersimpan ✓')}
+ const x={t:'inv',d,k:WP+w.n,a,n:$('#wsn').value.trim()||'Tabungan '+w.n,tp:'Setor'};wr(()=>IV.push({...x,id:0,_new:1}),'add',x,'Tabungan tersimpan ✓').then(()=>{if(cashAll()<0)toast('Saldo kas menjadi negatif ('+rp(cashAll())+'). Periksa pencatatan pemasukanmu.',false)})}
 function wBuy(id){const w=wFind(id);if(!w)return;WK=w;
- $('#sh').innerHTML=`<h3 style="font-size:18px">🛒 Beli ${esc(w.n)}</h3><p class="mut">Tabungan terkumpul ${rp(wSaved(w))}. Pengeluaran dicatat di kategori “Wishlist”, dan tabungan wishlist ditarik sebesar yang terkumpul (maksimal sebesar harga).</p><small class="mut">Harga beli sebenarnya</small><input id="wba" class="amt" inputmode="numeric" value="${rp(w.a)}" oninput="fmt(this)"><input id="wbd" type="date" value="${ymd(new Date())}"><button class="btn" onclick="wBuyGo()">Tandai sudah dibeli</button><button class="btn g" onclick="closeS()">Batal</button>`;$('#ov').classList.add('on')}
+ $('#sh').innerHTML=`<h3 style="font-size:18px">🛒 Beli ${esc(w.n)}</h3><p class="mut">Tabungan terkumpul ${rp(wSaved(w))}. Pengeluaran dicatat sebesar harga di kategori “Wishlist”, dan tabungan wishlist yang terkumpul (maksimal sebesar harga) ditarik kembali ke saldo kas, sehingga saldo akhirnya tetap sinkron.</p><small class="mut">Harga beli sebenarnya</small><input id="wba" class="amt" inputmode="numeric" value="${rp(w.a)}" oninput="fmt(this)"><input id="wbd" type="date" value="${ymd(new Date())}"><button class="btn" onclick="wBuyGo()">Tandai sudah dibeli</button><button class="btn g" onclick="closeS()">Batal</button>`;$('#ov').classList.add('on')}
 function wBuyGo(){const pr=parseInt($('#wba').value.replace(/\D/g,''))||0,d=$('#wbd').value,w=WK;if(pr<=0)return toast('Harga harus lebih dari 0',false);if(!d)return toast('Tanggal wajib diisi',false);
  const tk=Math.min(wSaved(w),pr);wr(()=>{w.s='Dibeli';w.bd=d;w.bp=pr;D.push({t:'out',id:0,d,k:'Wishlist',a:pr,n:w.n,_new:1});if(tk>0)IV.push({t:'inv',id:0,d,k:WP+w.n,a:tk,n:'Dibeli: '+w.n,tp:'Tarik',_new:1})},'wbuy',{id:w.id,sig:w.n+'|'+w.a,price:pr,date:d},'Selamat, wishlist terbeli 🎉')}
 
